@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceType {
+  PERSONAL
+  FAMILY
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum Visibility {
+  PRIVATE
+  SHARED
+}
+
+enum InvoiceStatus {
+  OPEN
+  CLOSED
+  OVERDUE
+  PAID
+  PARTIALLY_PAID
+}
+
+enum RecurringFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+}
+
+model Workspace {
+  id                    String                 @id @default(uuid())
+  name                  String
+  type                  WorkspaceType          @default(FAMILY)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  members               WorkspaceMember[]
+  creditCards           CreditCard[]
+  categories            Category[]
+  tags                  Tag[]
+  recurringTransactions RecurringTransaction[]
+  notifications         Notification[]
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  avatarUrl        String?
+  createdAt        DateTime          @default(now())
+  workspaceMembers WorkspaceMember[]
+  ownedCards       CreditCard[]
+  transactions     Transaction[]
+}
+
+model WorkspaceMember {
+  id          String     @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        MemberRole @default(MEMBER)
+  joinedAt    DateTime   @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model CreditCard {
+  id             String     @id @default(uuid())
+  workspaceId    String
+  ownerId        String
+  name           String
+  institution    String
+  lastFourDigits String
+  brand          String
+  creditLimit    Decimal    @db.Decimal(12, 2)
+  closingDay     Int
+  dueDay         Int
+  color          String     @default("#2563eb")
+  visibility     Visibility @default(SHARED)
+  createdAt      DateTime   @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User      @relation(fields: [ownerId], references: [id])
+  invoices  Invoice[]
+}
+
+model Category {
+  id                    String                 @id @default(uuid())
+  workspaceId           String
+  name                  String
+  icon                  String                 @default("Tag")
+  color                 String                 @default("#3b82f6")
+  type                  TransactionType        @default(EXPENSE)
+  parentId              String?
+  subcategories         String[]
+  workspace             Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+}
+
+model Tag {
+  id          String    @id @default(uuid())
+  workspaceId String
+  name        String
+  color       String    @default("#64748b")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id             String           @id @default(uuid())
+  creditCardId   String
+  referenceMonth String           // Formato YYYY-MM
+  closingDate    DateTime
+  dueDate        DateTime
+  totalAmount    Decimal          @default(0) @db.Decimal(12, 2)
+  paidAmount     Decimal          @default(0) @db.Decimal(12, 2)
+  status         InvoiceStatus    @default(OPEN)
+  fileUrl        String?          // URL do PDF/OFX/CSV da fatura original
+  fileName       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  creditCard   CreditCard       @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  payments     InvoicePayment[]
+
+  @@unique([creditCardId, referenceMonth])
+}
+
+model Transaction {
+  id                 String     @id @default(uuid())
+  invoiceId          String
+  categoryId         String
+  subcategory        String?
+  userId             String
+  description        String
+  merchant           String?
+  amount             Decimal    @db.Decimal(12, 2)
+  date               DateTime
+  currentInstallment Int        @default(1)
+  totalInstallments  Int        @default(1)
+  installmentGroupId String?
+  tags               String[]
+  visibility         Visibility @default(SHARED)
+  source             String     @default("MANUAL") // MANUAL | PDF_AI | OFX | CSV
+  createdAt          DateTime   @default(now())
+
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+}
+
+model InvoicePayment {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  paymentDate DateTime
+  amountPaid  Decimal  @db.Decimal(12, 2)
+  paymentMethod String @default("PIX / Débito em Conta")
+  receiptUrl  String?  // URL do comprovante (PDF ou Imagem)
+  receiptName String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model RecurringTransaction {
+  id             String             @id @default(uuid())
+  workspaceId    String
+  categoryId     String
+  userId         String
+  title          String
+  type           TransactionType    @default(EXPENSE)
+  expectedAmount Decimal            @db.Decimal(12, 2)
+  frequency      RecurringFrequency @default(MONTHLY)
+  dueDay         Int
+  startDate      DateTime
+  endDate        DateTime?
+  notifyDueDate  Boolean            @default(true)
+  daysBeforeAlert Int               @default(3)
+  visibility     Visibility         @default(SHARED)
+  autoDebitCardId String?
+  paidMonths     String[]           // Lista de YYYY-MM já quitados
+  active         Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  category  Category  @relation(fields: [categoryId], references: [id])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  workspaceId String
+  title       String
+  message     String
+  type        String   // INVOICE_DUE | RECURRING_DUE | PAYMENT_CONFIRMED | IMPORT_COMPLETED
+  referenceId String?
+  emailSent   Boolean  @default(false)
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}

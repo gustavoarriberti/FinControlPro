@@ -1,0 +1,58 @@
+OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:NONE
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+<OFX>
+  <CREDITCARDMSGSRSV1>
+    <CCSTMTTRNRS>
+      <CCSTMTRS>
+        <CURDEF>BRL
+        <BANKTRANLIST>
+          <DTSTART>20261101
+          <DTEND>20261118
+          <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20261103
+            <TRNAMT>-420.00
+            <FITID>20261103001
+            <MEMO>Amazon.com.br *Monitor Dell 27 01/05
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20261106
+            <TRNAMT>-689.50
+            <FITID>20261106002
+            <MEMO>Supermercado Pao de Acucar
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20261109
+            <TRNAMT>-142.90
+            <FITID>20261109003
+            <MEMO>iFood *Outback Steakhouse
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20261112
+            <TRNAMT>-245.00
+            <FITID>20261112004
+            <MEMO>Posto Ipiranga Combustiveis
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20261115
+            <TRNAMT>-88.40
+            <FITID>20261115005
+            <MEMO>Droga Raia Farmacia
+          </STMTTRN>
+        </BANKTRANLIST>
+      </CCSTMTRS>
+    </CCSTMTTRNRS>
+  </CREDITCARDMSGSRSV1>
+</OFX>
